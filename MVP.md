@@ -1,49 +1,60 @@
-# Local Voice AI Assistant — MVP Documentation
+# Local AI Voice Lead Agent — MVP Documentation
 
 ## 1. Project Objective
-The **Local Voice AI Assistant** is an end-to-end, ultra-low-latency, real-time conversational voice assistant designed to operate **100% locally** on a single machine without relying on external cloud APIs or paid cloud infrastructure.
+The **Local AI Voice Lead Agent** is an end-to-end, ultra-low-latency, real-time conversational voice assistant designed specifically for **Real Estate Lead Qualification**, operating **100% locally** on a single machine without relying on external cloud APIs or paid cloud infrastructure.
 
 Key objectives:
-- Enable natural, spoken dialogue with conversational AI.
+- Qualify inbound and outbound real estate leads naturally using spoken English dialogue.
+- Capture critical candidate profile information in real time (Interest, Buyer Type, Property Type, Budget, Location, Timeline, and HOT / WARM / COLD readiness).
 - Minimize conversational latency via streaming pipelines and early clause flushing.
-- Support instant, sub-second **barge-in / interruptions**.
-- Ensure total privacy and offline capability using local STT, LLM, and TTS engines.
+- Support instant, sub-second **barge-in / interruptions** (0.2s cut-off).
+- Ensure total client data privacy and offline capability using local STT, LLM, and TTS engines.
 
 ---
 
 ## 2. Current Architecture
 
 ```
-                               ┌────────────────────────┐
-                               │   Browser / Frontend   │
-                               │  (Next.js WebRTC Client)│
-                               └───────────▲────────────┘
-                                           │ WebRTC Audio
-                                           ▼
-                               ┌────────────────────────┐
-                               │     LiveKit Server     │
-                               │  (Local SFU on :7880)  │
-                               └───────────▲────────────┘
-                                           │
-                        ┌──────────────────┴──────────────────┐
-                        │      Python LiveKit Voice Agent     │
-                        │                                     │
-                        │  1. Silero VAD (CPU)                │
-                        │     └─ Barge-in detection (0.2s)    │
-                        │                                     │
-                        │  2. faster-whisper (STT)            │
-                        │     └─ Audio to transcript          │
-                        │                                     │
-                        │  3. Ollama / Groq (LLM)             │
-                        │     └─ Token streaming & early flush│
-                        │                                     │
-                        │  4. Piper TTS (ONNX)                │
-                        │     └─ 1-chunk lookahead pipelining │
-                        └─────────────────────────────────────┘
+                               ┌────────────────────────────────┐
+                               │   Browser / Next.js Frontend   │
+                               │  - Modern Dark Real Estate UI  │
+                               │  - Live Status & Call Timer    │
+                               │  - User/AI Dialogue Bubbles    │
+                               │  - Lead Information Panel      │
+                               │  - Mic Mute / End Call Controls│
+                               └───────────────▲────────────────┘
+                                               │ WebRTC Audio
+                                               ▼
+                               ┌────────────────────────────────┐
+                               │     LiveKit Server             │
+                               │  (Local SFU on :7880)          │
+                               └───────────────▲────────────────┘
+                                               │
+                         ┌─────────────────────┴──────────────────┐
+                         │      Python LiveKit Voice Agent        │
+                         │                                        │
+                         │  1. Silero VAD (CPU)                   │
+                         │     └─ Barge-in detection (0.2s)       │
+                         │                                        │
+                         │  2. faster-whisper (STT)               │
+                         │     └─ Audio to transcript             │
+                         │                                        │
+                         │  3. Ollama (LLM)                       │
+                         │     └─ Token streaming & early flush   │
+                         │                                        │
+                         │  4. Piper TTS (ONNX)                   │
+                         │     └─ 1-chunk lookahead pipelining    │
+                         └────────────────────────────────────────┘
 ```
 
 ### Architectural Highlights
 - **Transport**: WebRTC via local LiveKit SFU server for bidirectional real-time audio.
+- **Frontend Dashboard**:
+  - Center interactive microphone button with status-reactive glowing ring animations.
+  - Live call timer (`MM:SS`) and dynamic status badge (`Ready`, `Listening`, `AI Speaking`, `Processing`).
+  - Separated conversation transcript (User messages vs. AI Voice Assistant dialogue).
+  - Dedicated right-side **Lead Information Panel** with qualification attributes and HOT / WARM / COLD lead scoring.
+  - Hardware microphone mute/unmute and call termination controls.
 - **VAD (Voice Activity Detection)**: Silero VAD on CPU to prevent GPU contention with Whisper/Ollama.
 - **Pipelined TTS**: Single-chunk prefetch synthesis occurs concurrently with playback to eliminate inter-clause silence gaps.
 - **Early Clause Flushing**: Flushes the first sentence clause early (~50 characters) so playback starts before the full LLM sentence finishes generation.
@@ -56,7 +67,7 @@ Key objectives:
 |---|---|---|
 | **STT (Speech-to-Text)** | `faster-whisper` (`base.en` / `large-v3-turbo`) | CTranslate2-based Whisper running on CPU/CUDA |
 | **VAD** | `silero-vad` (ONNX) | CPU-optimized speech boundary and interruption detector |
-| **LLM (Brain)** | `qwen2.5:0.5b` / `llama3.2:3b` | Local inference via Ollama (or optional Groq API fallback) |
+| **LLM (Brain)** | `qwen2.5:0.5b` / `llama3.2:3b` | Local inference via Ollama |
 | **TTS (Text-to-Speech)** | Piper ONNX (`en_US-danny-low.onnx`) | High-speed, natural offline voice synthesis |
 
 ---
@@ -65,7 +76,7 @@ Key objectives:
 
 ### System Requirements
 - **OS**: Windows 10/11 (PowerShell / Command Prompt)
-- **Python**: Python `3.10` - `3.12` (Python 3.11 is recommended; Python 3.14 is incompatible with `livekit-agents` packages)
+- **Python**: Python `3.10` - `3.12` (Python 3.11 is recommended)
 - **Node.js**: Node.js `18+` and `npm`
 - **Ollama**: Installed and running locally (`https://ollama.com`)
 - **GPU (Optional)**: NVIDIA GPU with CUDA for acceleration (CPU with `base.en` provides sub-second inference)
@@ -99,9 +110,9 @@ npm run dev
 ```
 
 ### Accessing the Assistant
-1. Open your browser and navigate to **`http://localhost:3000`** (or **`http://localhost:3001`** if 3000 is occupied).
+1. Open your browser and navigate to **`http://localhost:3000`** (or **`http://localhost:3001`**).
 2. Allow microphone access when prompted.
-3. Click **Start call** and speak into your microphone in English.
+3. Click **Start Voice Call** and speak into your microphone in English.
 
 ---
 
@@ -130,22 +141,23 @@ npm run dev
 
 ## 8. Current Working Status
 
-- [x] **LiveKit SFU Server**: Active and running on `ws://127.0.0.1:7880` (HTTP `:7880` health check returns `OK`).
-- [x] **Next.js Frontend**: Active and running on `http://localhost:3001` (Dev server ready and serving WebRTC interface).
-- [x] **Python Environment**: Configured with Python 3.11 virtual environment (`.venv`) with all required packages (`livekit-agents`, `faster-whisper`, `silero`, `sounddevice`, `scipy`, `requests`).
+- [x] **LiveKit SFU Server**: Active and running on `ws://127.0.0.1:7880`.
+- [x] **Next.js Frontend**: Active and running on `http://localhost:3001` with modern dark Real Estate UI.
+- [x] **Python Environment**: Configured with Python 3.11 virtual environment (`.venv`) with all required packages.
 - [x] **Piper TTS Voice Engine**: Tested and verified with `en_US-danny-low.onnx` voice model.
 - [x] **Whisper STT Engine**: Initialized and verified on local machine.
 - [x] **LiveKit Python Agent Worker**: Running in development mode and listening for incoming room connections.
+- [x] **Lead Information Panel**: Integrated into the UI with real estate lead fields and HOT / WARM / COLD status.
 
 ---
 
 ## 9. Known Issues & Operational Considerations
 
 1. **Python 3.14 Package Incompatibility**:
-   - `livekit-agents` and `onnxruntime` wheels require Python `<3.14` (e.g. Python 3.11). Running with system Python 3.14 directly will fail dependency resolution. The project must use the configured `.venv` (Python 3.11).
+   - `livekit-agents` and `onnxruntime` wheels require Python `<3.14` (e.g. Python 3.11). The project must use the configured `.venv` (Python 3.11).
 2. **Local Ollama Service Requirement**:
    - If Ollama is not installed or running locally, the LLM step will fail unless an external `GROQ_API_KEY` is configured in `.env.local`.
 3. **Port Collisions**:
-   - If port `3000` is in use by another local development process, Next.js will automatically bind to port `3001`.
+   - If port `3000` is in use by another local process, Next.js will automatically bind to port `3001`.
 4. **Hugging Face Symlink Warning on Windows**:
    - On Windows systems without Developer Mode enabled, Hugging Face Hub logs a non-fatal warning regarding symlinks and falls back to standard file caching without impacting execution.
