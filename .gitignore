@@ -1,0 +1,31 @@
+# Heavy / regenerable: never commit
+# (.venv recreated from requirements.txt; models downloaded — see README)
+.venv/
+models/
+node_modules/
+frontend/node_modules/
+frontend/.next/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Local env (real runtime config — copy from .env.example)
+.env.local
+
+# Backup archives (kept locally, not published; GitHub rejects >100 MB files anyway)
+*.zip
+
+# Claude Code working dir (contains local session transcripts)
+.claude/
+
+# voice/ XTTS sandbox — isolated venv, generated audio, and reference clips
+# (reference clips are local-only: large + likely copyrighted movie audio)
+voice/.venv-xtts/
+voice/out*.wav
+voice/refs/*.wav
+voice/refs/*.mp3
+voice/refs/*.flac
+
+# Everything else — including .env.local — is committed on purpose so the
+# config is visible for local-use reference.
